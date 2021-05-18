@@ -1,0 +1,60 @@
+{% extends 'generic/object_edit.html' %}
+{% load static %}
+{% load form_helpers %}
+{% load helpers %}
+
+{% block form %}
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Session</strong></div>
+        <div class="panel-body">
+            {% render_field form.name %}
+            {% render_field form.site %}
+            {% render_field form.device %}
+            {% render_field form.description %}
+            {% render_field form.status %}
+            {% render_field form.tenant %}
+            {% render_field form.tags %}
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Local</strong></div>
+        <div class="panel-body">
+            {% render_field form.local_as %}
+            {% render_field form.local_address %}
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Remote</strong></div>
+        <div class="panel-body">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#ebgp" role="tab" data-toggle="tab">eBGP</a></li>
+                    <li role="presentation"><a href="#ibgp" role="tab" data-toggle="tab">iBGP</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="ebgp">
+                        {% render_field form.remote_as %}
+                        {% render_field form.remote_address %}
+                    </div>
+                    <div class="tab-pane" id="ibgp">
+                        {% render_field form.ibgp_device %}
+                        {% render_field form.ibgp_address %}
+                    </div>
+                </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading"><strong>Policies</strong></div>
+        <div class="panel-body">
+            {% render_field form.import_policies %}
+            {% render_field form.export_policies %}
+        </div>
+    </div>
+    {% if form.custom_fields %}
+        <div class="panel panel-default">
+            <div class="panel-heading"><strong>Custom Fields</strong></div>
+            <div class="panel-body">
+                {% render_custom_fields form %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

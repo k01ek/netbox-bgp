@@ -267,7 +267,8 @@ class BGPSession(ChangeLoggedModel, CustomFieldModel):
     remote_address = models.ForeignKey(
         to='ipam.IPAddress',
         on_delete=models.PROTECT,
-        related_name='remote_address'
+        related_name='remote_address',
+        null=True
     )
     local_as = models.ForeignKey(
         ASN,
@@ -277,7 +278,14 @@ class BGPSession(ChangeLoggedModel, CustomFieldModel):
     remote_as = models.ForeignKey(
         ASN,
         on_delete=models.PROTECT,
-        related_name='remote_as'
+        related_name='remote_as',
+        null=True
+    )
+    ibgp_device = models.ForeignKey(
+        to='dcim.Device',
+        on_delete=models.PROTECT,
+        null=True,
+        related_name='ibgp_device'
     )
     status = models.CharField(
         max_length=50,

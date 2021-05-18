@@ -141,6 +141,16 @@
                     </td>
                 </tr>
                 <tr>
+                    <td>iBGP Device</td>
+                    <td>
+                        {% if object.ibgp_device %}
+                        <a href="{{ object.ibgp_device.get_absolute_url }}">{{ object.ibgp_device }}</a>
+                        {% else %}
+                        <span class="text-muted">None</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
                     <td>Status</td>
                     <td>
                         <span class="label label-{{ object.get_status_class }}">{{ object.get_status_display }}</span>

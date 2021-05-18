@@ -1,3 +1,4 @@
+from django.db.models import Q
 from extras.plugins import PluginTemplateExtension
 
 from .models import BGPSession
@@ -24,7 +25,7 @@ class DeviceBGPSession(PluginTemplateExtension):
 
     def x_page(self):
         obj = self.context['object']
-        sess = BGPSession.objects.filter(device=obj)
+        sess = BGPSession.objects.filter(Q(device=obj) | Q(ibgp_device=obj))
         sess_table = BGPSessionTable(sess)
         return self.render(
             'netbox_bgp/device_extend.html',

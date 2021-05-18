@@ -50,10 +50,11 @@ class BGPSessionTable(BaseTable):
     pk = ToggleColumn()
     name = tables.LinkColumn()
     device = tables.LinkColumn()
-    local_address = tables.LinkColumn()
-    local_as = tables.LinkColumn()
-    remote_address = tables.LinkColumn()
-    remote_as = tables.LinkColumn()
+    local_address = tables.LinkColumn(verbose_name='Local Address')
+    local_as = tables.LinkColumn(verbose_name='Local AS')
+    remote_address = tables.LinkColumn(verbose_name='Remote Address')
+    remote_as = tables.LinkColumn(verbose_name='Remote AS')
+    ibgp_device = tables.LinkColumn(verbose_name='iBGP Device')
     site = tables.LinkColumn()
     status = ChoiceFieldColumn(
         default=AVAILABLE_LABEL
@@ -66,8 +67,8 @@ class BGPSessionTable(BaseTable):
         model = BGPSession
         fields = (
             'pk', 'name', 'device', 'local_address', 'local_as',
-            'remote_address', 'remote_as', 'description',
-            'site', 'status'
+            'remote_address', 'remote_as', 'ibgp_device',
+            'description', 'site', 'status'
         )
 
 
