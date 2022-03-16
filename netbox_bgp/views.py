@@ -3,60 +3,16 @@ from django.db.models import Q
 from netbox.views import generic
 
 from .filters import (
-    ASNFilterSet, CommunityFilterSet, BGPSessionFilterSet,
+    CommunityFilterSet, BGPSessionFilterSet,
     RoutingPolicyFilterSet, BGPPeerGroupFilterSet
 )
-from .models import ASN, Community, BGPSession, RoutingPolicy, BGPPeerGroup
-from .tables import ASNTable, CommunityTable, BGPSessionTable, RoutingPolicyTable, BGPPeerGroupTable
+from .models import Community, BGPSession, RoutingPolicy, BGPPeerGroup
+from .tables import CommunityTable, BGPSessionTable, RoutingPolicyTable, BGPPeerGroupTable
 from .forms import (
-    ASNFilterForm, ASNBulkEditForm, ASNForm, CommunityForm,
-    CommunityFilterForm, CommunityBulkEditForm, BGPSessionForm,
+    CommunityForm, CommunityFilterForm, CommunityBulkEditForm, BGPSessionForm,
     BGPSessionFilterForm, BGPSessionAddForm, RoutingPolicyFilterForm,
     RoutingPolicyForm, BGPPeerGroupFilterForm, BGPPeerGroupForm
 )
-
-
-class ASNListView(generic.ObjectListView):
-    queryset = ASN.objects.all()
-    filterset = ASNFilterSet
-    filterset_form = ASNFilterForm
-    table = ASNTable
-    action_buttons = ()
-    template_name = 'netbox_bgp/asn_list.html'
-
-
-class ASNView(generic.ObjectView):
-    queryset = ASN.objects.all()
-    template_name = 'netbox_bgp/asn.html'
-
-    def get_extra_context(self, request, instance):
-        sess = BGPSession.objects.filter(remote_as=instance) | BGPSession.objects.filter(local_as=instance)
-        sess_table = BGPSessionTable(sess)
-        return {
-            'related_session_table': sess_table
-        }
-
-
-class ASNEditView(generic.ObjectEditView):
-    queryset = ASN.objects.all()
-    model_form = ASNForm
-    default_return_url = 'plugins:netbox_bgp:asn_list'
-
-
-class ASNBulkDeleteView(generic.BulkDeleteView):
-    queryset = ASN.objects.all()
-    table = ASNTable
-
-
-class ASNBulkEditView(generic.BulkEditView):
-    queryset = ASN.objects.all()
-    filterset = ASNFilterSet
-    table = ASNTable
-    form = ASNBulkEditForm
-
-
-class ASNDeleteView(generic.ObjectDeleteView):
-    queryset = ASN.objects.all()
 
 
 class CommunityListView(generic.ObjectListView):

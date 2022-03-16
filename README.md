@@ -38,12 +38,6 @@ BGP Session
 BGP Sessions
 ![BGP Session Table](docs/img/bgp_sess_list.png)
 
-ASN
-![ASN](docs/img/asn.png)
-
-ASNs
-![ASN Table](docs/img/asn_list.png)
-
 Community
 ![Community](docs/img/commun.png)
 

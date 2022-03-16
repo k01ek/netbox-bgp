@@ -4,7 +4,7 @@ from django_tables2.utils import A
 
 from utilities.tables import BaseTable, ChoiceFieldColumn, ToggleColumn, TagColumn
 
-from .models import ASN, Community, BGPSession, RoutingPolicy, BGPPeerGroup
+from .models import Community, BGPSession, RoutingPolicy, BGPPeerGroup
 
 AVAILABLE_LABEL = mark_safe('<span class="label label-success">Available</span>')
 COL_TENANT = """
@@ -22,22 +22,6 @@ POLICIES = """
     &mdash;
 {% endfor %}
 """
-
-
-class ASNTable(BaseTable):
-    pk = ToggleColumn()
-    number = tables.LinkColumn(text=lambda record: record.__str__(), args=[A('pk')])
-    status = ChoiceFieldColumn(
-        default=AVAILABLE_LABEL
-    )
-    site = tables.LinkColumn()
-    tenant = tables.TemplateColumn(
-        template_code=COL_TENANT
-    )
-
-    class Meta(BaseTable.Meta):
-        model = ASN
-        fields = ('pk', 'number', 'description', 'status')
 
 
 class CommunityTable(BaseTable):
