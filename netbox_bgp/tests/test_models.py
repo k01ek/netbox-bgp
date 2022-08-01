@@ -4,40 +4,9 @@ from django.test import TestCase
 
 from tenancy.models import Tenant
 from dcim.models import Site, Device, Manufacturer, DeviceRole, DeviceType
-from ipam.models import IPAddress
+from ipam.models import IPAddress, ASN, RIR
 
-from netbox_bgp.models import ASN, BGPSession, Community, RoutingPolicy, BGPPeerGroup
-
-
-class ASNTestCase(TestCase):
-    def setUp(self):
-        self.tenant = Tenant.objects.create(name='tenant')
-        self.asn = ASN.objects.create(
-            number=65001,
-            description='test_asn'
-        )
-
-    def test_create_asn(self):
-        self.assertTrue(isinstance(self.asn, ASN))
-        self.assertEqual(self.asn.__str__(), str(self.asn.number))
-
-    def test_invalid_asn0(self):
-        asn = ASN(number=0)
-        self.assertRaises(ValidationError, asn.full_clean)
-
-    def test_invalid_asndohuya(self):
-        asn = ASN(number=4294967296)
-        self.assertRaises(ValidationError, asn.full_clean)
-
-    def test_uniqueconstraint_asn(self):
-        asn = ASN(number=65001)
-        with self.assertRaises(IntegrityError):
-            asn.save()
-
-    def test_uniqueconstraint_asn2(self):
-        asn = ASN.objects.create(number=65001, tenant=self.tenant)
-        self.assertEqual(str(asn), '65001')
-        # todo cre another 65001 tenant=self.tenant
+from netbox_bgp.models import BGPSession, Community, RoutingPolicy, BGPPeerGroup
 
 
 class RoutingPolicyTestCase(TestCase):
@@ -170,11 +139,16 @@ class BGPSessionTestCase(TestCase):
             device_role=device_role,
             device_type=device_type
         )
+        self.rir = RIR.objects.create(
+            name="rir"
+        )
         self.local_as = ASN.objects.create(
-            number=65001,
+            asn=65001,
+            rir=self.rir
         )
         self.remote_as = ASN.objects.create(
-            number=65002,
+            asn=65002,
+            rir=self.rir
         )
         self.peer_group = BGPPeerGroup.objects.create(
             name='peer_group'

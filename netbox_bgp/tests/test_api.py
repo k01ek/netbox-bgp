@@ -12,9 +12,9 @@ from users.models import Token
 
 from tenancy.models import Tenant
 from dcim.models import Site, DeviceRole, DeviceType, Manufacturer, Device, Interface
-from ipam.models import IPAddress
+from ipam.models import IPAddress, ASN, RIR
 
-from netbox_bgp.models import ASN, Community, BGPPeerGroup, BGPSession
+from netbox_bgp.models import Community, BGPPeerGroup, BGPSession
 
 
 class BaseTestCase(TestCase):
@@ -25,98 +25,6 @@ class BaseTestCase(TestCase):
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
         self.gql_client = Client(HTTP_AUTHORIZATION=f'Token {self.token.key}')
-
-
-class ASNTestCase(BaseTestCase):
-    def setUp(self):
-        super().setUp()
-        self.base_url_lookup = 'plugins-api:netbox_bgp-api:asn'
-        self.asn1 = ASN.objects.create(number=65000, description='test_asn1')
-        self.asn2 = ASN.objects.create(number=65001, description='test_asn2')
-        self.tenant = Tenant.objects.create(name='tenant')
-
-    def test_list_asn(self):
-        url = reverse(f'{self.base_url_lookup}-list')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['count'], 2)
-
-    def test_get_asn(self):
-        url = reverse(f'{self.base_url_lookup}-detail', kwargs={'pk': self.asn1.pk})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['number'], self.asn1.number)
-        self.assertEqual(response.data['description'], self.asn1.description)
-
-    def test_create_asn(self):
-        url = reverse(f'{self.base_url_lookup}-list')
-        data = {'number': 65002, 'description': 'test_asn3'}
-
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        for key, value in data.items():
-            self.assertEqual(response.data[key], value)
-
-        asn = ASN.objects.get(pk=response.data['id'])
-        self.assertEqual(asn.number, data['number'])
-        self.assertEqual(asn.description, data['description'])
-
-    def test_update_asn(self):
-        url = reverse(f'{self.base_url_lookup}-detail', kwargs={'pk': self.asn1.pk})
-
-        response = self.client.patch(url, {'number': 65004}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        asn = ASN.objects.get(pk=self.asn1.pk)
-        self.assertEqual(asn.number, 65004)
-
-        response = self.client.patch(url, {'number': 65005}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        asn = ASN.objects.get(pk=self.asn1.pk)
-        self.assertEqual(asn.number, 65005)
-
-        response = self.client.patch(url, {'description': 'changed'}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        asn = ASN.objects.get(pk=self.asn1.pk)
-        self.assertEqual(asn.description, 'changed')
-
-    def test_delete_task(self):
-        url = reverse(f'{self.base_url_lookup}-detail', kwargs={'pk': self.asn1.pk})
-
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        with self.assertRaises(ASN.DoesNotExist):
-            ASN.objects.get(pk=self.asn1.pk)
-
-    def test_uniqueconstraint_asn(self):
-        url = reverse(f'{self.base_url_lookup}-list')
-        data = {'number': 65001, 'description': 'test_asn3'}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-        data = {'number': 65001, 'description': 'test_asn3', 'tenant': self.tenant.pk}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-    def test_graphql(self):
-        url = reverse('graphql')
-        query = 'query bgp_asn($id: Int!){bgp_asn(id: $id){number}}'
-        response = self.gql_client.post(
-            url,
-            json.dumps({'query': query, 'variables': {'id': self.asn1.pk}}),
-            content_type='application/json'
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(json.loads(response.content)['data']['bgp_asn']['number'], self.asn1.number)
-
-    def test_graphql_list(self):
-        url = reverse('graphql')
-        query = '{bgp_asn_list{number}}'
-        response = self.gql_client.post(
-            url,
-            json.dumps({'query': query}),
-            content_type='application/json'
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class CommunityTestCase(BaseTestCase):
@@ -247,10 +155,11 @@ class SessionTestCase(BaseTestCase):
         self.remote_ip = IPAddress.objects.create(address='4.4.4.4/32')
         intf.ip_addresses.add(local_ip)
         self.device.save()
-        self.local_as = ASN.objects.create(number=65000, description='local_as')
-        self.remote_as = ASN.objects.create(number=65001, description='remote_as')
-        local_as = ASN.objects.create(number=65002, description='local_as')
-        remote_as = ASN.objects.create(number=65003, description='remote_as')
+        self.rir = RIR.objects.create(name="rir")
+        self.local_as = ASN.objects.create(asn=65000, rir=self.rir, description='local_as')
+        self.remote_as = ASN.objects.create(asn=65001, rir=self.rir, description='remote_as')
+        local_as = ASN.objects.create(asn=65002, rir=self.rir, description='local_as')
+        remote_as = ASN.objects.create(asn=65003, rir=self.rir, description='remote_as')
         self.peer_group = BGPPeerGroup.objects.create(name='peer_group', description='peer_group_description')
         self.session = BGPSession.objects.create(
             name='session',
@@ -275,8 +184,8 @@ class SessionTestCase(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], self.session.name)
         self.assertEqual(response.data['description'], self.session.description)
-        self.assertEqual(response.data['local_as']['number'], self.session.local_as.number)
-        self.assertEqual(response.data['remote_as']['number'], self.session.remote_as.number)
+        self.assertEqual(response.data['local_as']['asn'], self.session.local_as.asn)
+        self.assertEqual(response.data['remote_as']['asn'], self.session.remote_as.asn)
         self.assertEqual(response.data['local_address']['address'], self.session.local_address.address)
         self.assertEqual(response.data['remote_address']['address'], self.session.remote_address.address)
         self.assertEqual(response.data['status']['value'], self.session.status)

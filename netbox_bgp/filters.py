@@ -4,32 +4,9 @@ from django.db.models import Q
 from netaddr.core import AddrFormatError
 from extras.filters import TagFilter
 
-from .models import ASN, Community, BGPSession, RoutingPolicy, BGPPeerGroup
-from ipam.models import IPAddress
+from .models import Community, BGPSession, RoutingPolicy, BGPPeerGroup
+from ipam.models import IPAddress, ASN
 from dcim.models import Device
-
-
-class ASNFilterSet(django_filters.FilterSet):
-    q = django_filters.CharFilter(
-        method='search',
-        label='Search',
-    )
-    tag = TagFilter()
-
-    class Meta:
-        model = ASN
-        fields = ['number', 'description', 'status', 'tenant', 'site']
-
-    def search(self, queryset, name, value):
-        """Perform the filtered search."""
-        if not value.strip():
-            return queryset
-        qs_filter = (
-                Q(id__icontains=value)
-                | Q(number__icontains=value)
-                | Q(description__icontains=value)
-        )
-        return queryset.filter(qs_filter)
 
 
 class CommunityFilterSet(django_filters.FilterSet):
@@ -65,7 +42,7 @@ class BGPSessionFilterSet(django_filters.FilterSet):
     remote_as = django_filters.ModelMultipleChoiceFilter(
         field_name='remote_as__number',
         queryset=ASN.objects.all(),
-        to_field_name='number',
+        to_field_name='asn',
         label='Remote AS (Number)',
     )
     remote_as_id = django_filters.ModelMultipleChoiceFilter(
@@ -77,7 +54,7 @@ class BGPSessionFilterSet(django_filters.FilterSet):
     local_as = django_filters.ModelMultipleChoiceFilter(
         field_name='local_as__number',
         queryset=ASN.objects.all(),
-        to_field_name='number',
+        to_field_name='asn',
         label='Local AS (Number)',
     )
     local_as_id = django_filters.ModelMultipleChoiceFilter(

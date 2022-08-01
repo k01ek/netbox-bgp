@@ -1,10 +1,9 @@
 from django.urls import path
 from netbox.views.generic import ObjectChangeLogView
-from .models import ASN, BGPSession, Community, RoutingPolicy, BGPPeerGroup, RoutingPolicyRule
+from .models import BGPSession, Community, RoutingPolicy, BGPPeerGroup, RoutingPolicyRule
 
 from .views import (
-    ASNListView, ASNView, ASNBulkDeleteView, ASNEditView, ASNBulkEditView,
-    ASNDeleteView, CommunityListView, CommunityEditView, CommunityView,
+    CommunityListView, CommunityEditView, CommunityView,
     CommunityBulkEditView, CommunityBulkDeleteView, CommunityDeleteView,
     BGPSessionListView, BGPSessionEditView, BGPSessionBulkDeleteView,
     BGPSessionView, BGPSessionDeleteView, BGPSessionAddView,
@@ -16,14 +15,6 @@ from .views import (
 )
 
 urlpatterns = [
-    path('asn/', ASNListView.as_view(), name='asn_list'),
-    path('asn/add/', ASNEditView.as_view(), name='asn_add'),
-    path('asn/edit/', ASNBulkEditView.as_view(), name='asn_bulk_edit'),
-    path('asn/delete/', ASNBulkDeleteView.as_view(), name='asn_bulk_delete'),
-    path('asn/<int:pk>/', ASNView.as_view(), name='asn'),
-    path('asn/<int:pk>/edit/', ASNEditView.as_view(), name='asn_edit'),
-    path('asn/<int:pk>/delete/', ASNDeleteView.as_view(), name='asn_delete'),
-    path('asn/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='asn_changelog', kwargs={'model': ASN}),
     # Community
     path('community/', CommunityListView.as_view(), name='community_list'),
     path('community/add/', CommunityEditView.as_view(), name='community_add'),
@@ -42,7 +33,6 @@ urlpatterns = [
     path('session/<int:pk>/delete/', BGPSessionDeleteView.as_view(), name='bgpsession_delete'),
     path('session/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='bgpsession_changelog', kwargs={'model': BGPSession}),
     # Routing Policies
-    
     path('routing-policy/', RoutingPolicyListView.as_view(), name='routingpolicy_list'),
     path('routing-policy/add/', RoutingPolicyEditView.as_view(), name='routingpolicy_add'),
     path('routing-policy/delete/', RoutingPolicyBulkDeleteView.as_view(), name='routingpolicy_bulk_delete'),

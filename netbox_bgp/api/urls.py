@@ -1,12 +1,8 @@
 from rest_framework import routers
 
-from .views import (
-    ASNViewSet, BGPSessionViewSet, RoutingPolicyViewSet, BGPPeerGroupViewSet,
-    CommunityViewSet
-)
+from .views import BGPSessionViewSet, RoutingPolicyViewSet, BGPPeerGroupViewSet, CommunityViewSet
 
 router = routers.DefaultRouter()
-router.register('asn', ASNViewSet)
 router.register('session', BGPSessionViewSet, 'session')
 router.register('bgpsession', BGPSessionViewSet, 'bgpsession')
 router.register('routing-policy', RoutingPolicyViewSet)

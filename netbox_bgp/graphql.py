@@ -14,15 +14,6 @@ class CommunityType(NetBoxObjectType):
         filterset_class = filters.CommunityFilterSet
 
 
-class AsnType(NetBoxObjectType):
-    number = Field(BigInt)
-
-    class Meta:
-        model = models.ASN
-        fields = '__all__'
-        filterset_class = filters.ASNFilterSet
-
-
 class BgpSessionType(NetBoxObjectType):
     class Meta:
         model = models.BGPSession
@@ -47,9 +38,6 @@ class RoutingPolicyType(NetBoxObjectType):
 class BGPQuery(ObjectType):
     community = ObjectField(CommunityType)
     community_list = ObjectListField(CommunityType)
-
-    bgp_asn = ObjectField(AsnType)
-    bgp_asn_list = ObjectListField(AsnType)
 
     bgp_session = ObjectField(BgpSessionType)
     bgp_session_list = ObjectListField(BgpSessionType)

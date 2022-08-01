@@ -1,10 +1,5 @@
 from django.contrib import admin
-from .models import ASN, Community, BGPSession, BGPPeerGroup, RoutingPolicy
-
-
-@admin.register(ASN)
-class ASNAdmin(admin.ModelAdmin):
-    fields = ('number', 'status', 'description')
+from .models import Community, BGPSession, BGPPeerGroup, RoutingPolicy
 
 
 @admin.register(Community)

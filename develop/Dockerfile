@@ -1,4 +1,4 @@
-ARG python_ver=3.7
+ARG python_ver=3.8
 FROM python:${python_ver}
 
 ARG netbox_ver=master

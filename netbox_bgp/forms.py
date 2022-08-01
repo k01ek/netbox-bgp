@@ -8,7 +8,7 @@ from django.utils.translation import gettext as _
 from extras.models import Tag
 from tenancy.models import Tenant
 from dcim.models import Device, Site
-from ipam.models import IPAddress, Prefix
+from ipam.models import IPAddress, Prefix, ASN
 from ipam.formfields import IPNetworkFormField
 from utilities.forms import (
     DynamicModelChoiceField,
@@ -18,143 +18,12 @@ from utilities.forms import (
 from netbox.forms import NetBoxModelForm, NetBoxModelBulkEditForm, NetBoxModelFilterSetForm
 
 from .models import (
-    ASN, ASNStatusChoices, Community, BGPSession,
+    CommunityStatusChoices, Community, BGPSession,
     SessionStatusChoices, RoutingPolicy, BGPPeerGroup, RoutingPolicyRule
 )
 
 
 from django.forms.widgets import TextInput
-
-
-class ASNField(forms.CharField):
-    '''
-    Return int value, but allows to input dotted digit text
-    '''
-
-    def to_python(self, value):
-        if not re.match(r'^\d+(\.\d+)?$', value):
-            raise ValidationError('Invalid AS Number: {}'.format(value))
-        if '.' in value:
-            if int(value.split('.')[0]) > 65535 or int(value.split('.')[1]) > 65535:
-                raise ValidationError('Invalid AS Number: {}'.format(value))
-            try:
-                return int(value.split('.')[0]) * 65536 + int(value.split('.')[1])
-            except ValueError:
-                raise ValidationError('Invalid AS Number: {}'.format(value))
-        try:
-            return int(value)
-        except ValueError:
-            raise ValidationError('Invalid AS Number: {}'.format(value))
-
-
-class ASdotInput(TextInput):
-    def _format_value(self, value):
-        if not value:
-            return 0
-        if type(value) is str:
-            return value
-        if int(value) > 65535:
-            return '{}.{}'.format(value // 65536, value % 65536)
-        else:
-            return value
-
-    def render(self, name, value, attrs=None, renderer=None):
-        nb_settings = settings.PLUGINS_CONFIG.get('netbox_bgp', {})
-        asdot = nb_settings.get('asdot', False)
-        if asdot:
-            value = self._format_value(value)
-        return super().render(name, value, attrs, renderer)
-
-
-class ASNFilterForm(NetBoxModelFilterSetForm):
-    model = ASN
-    q = forms.CharField(
-        required=False,
-        label='Search'
-    )
-    tenant = DynamicModelChoiceField(
-        queryset=Tenant.objects.all(),
-        required=False
-    )
-    status = forms.MultipleChoiceField(
-        choices=ASNStatusChoices,
-        required=False,
-        widget=StaticSelectMultiple()
-    )
-    site = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False
-    )
-
-    tag = TagFilterField(model)
-
-
-class ASNForm(NetBoxModelForm):
-    number = ASNField(
-        widget=ASdotInput
-    )
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False
-    )
-    site = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False
-    )
-    status = forms.ChoiceField(
-        required=False,
-        choices=ASNStatusChoices,
-        widget=StaticSelect()
-    )
-    tenant = DynamicModelChoiceField(
-        queryset=Tenant.objects.all(),
-        required=False
-    )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        if self.errors.get('number'):
-            return cleaned_data
-        number = cleaned_data.get('number')
-        tenant = cleaned_data.get('tenant')
-        if 'number' in self.changed_data or 'tenant' in self.changed_data:
-            if ASN.objects.filter(number=number, tenant=tenant).exists():
-                raise forms.ValidationError('AS number with this number and tenant is already exists.')
-        return cleaned_data
-
-    class Meta:
-        model = ASN
-        fields = [
-            'number', 'description', 'status', 'site', 'tenant', 'tags',
-        ]
-
-
-class ASNBulkEditForm(NetBoxModelBulkEditForm):
-    pk = forms.ModelMultipleChoiceField(
-        queryset=ASN.objects.all(),
-        widget=forms.MultipleHiddenInput
-    )
-    tenant = DynamicModelChoiceField(
-        queryset=Tenant.objects.all(),
-        required=False
-    )
-    description = forms.CharField(
-        max_length=200,
-        required=False
-    )
-    status = forms.ChoiceField(
-        required=False,
-        choices=ASNStatusChoices,
-        widget=StaticSelect()
-    )
-
-    model = ASN
-    fieldsets = (
-        (None, ('tenant', 'description', 'status')),
-    )
-    nullable_fields = (
-        'tenant', 'description',
-    )
 
 
 class CommunityForm(NetBoxModelForm):
@@ -164,7 +33,7 @@ class CommunityForm(NetBoxModelForm):
     )
     status = forms.ChoiceField(
         required=False,
-        choices=ASNStatusChoices,
+        choices=CommunityStatusChoices,
         widget=StaticSelect()
     )
     tenant = DynamicModelChoiceField(
@@ -189,7 +58,7 @@ class CommunityFilterForm(NetBoxModelFilterSetForm):
         required=False
     )
     status = forms.MultipleChoiceField(
-        choices=ASNStatusChoices,
+        choices=CommunityStatusChoices,
         required=False,
         widget=StaticSelectMultiple()
     )
@@ -218,7 +87,7 @@ class CommunityBulkEditForm(NetBoxModelBulkEditForm):
     )
     status = forms.ChoiceField(
         required=False,
-        choices=ASNStatusChoices,
+        choices=CommunityStatusChoices,
         widget=StaticSelect()
     )
 
@@ -257,19 +126,11 @@ class BGPSessionForm(NetBoxModelForm):
         query_params={
             'site_id': '$site'
         },
-        widget=APISelect(
-            api_url='/api/plugins/bgp/asn/',
-        )
-
+        label=_('Local AS')
     )
     remote_as = DynamicModelChoiceField(
         queryset=ASN.objects.all(),
-        query_params={
-            'site_id': '$site'
-        },
-        widget=APISelect(
-            api_url='/api/plugins/bgp/asn/',
-        )
+        label=_('Remote AS')
     )
     local_address = DynamicModelChoiceField(
         queryset=IPAddress.objects.all(),
@@ -343,18 +204,12 @@ class BGPSessionFilterForm(NetBoxModelFilterSetForm):
     remote_as_id = DynamicModelMultipleChoiceField(
         queryset=ASN.objects.all(),
         required=False,
-        label=_('Remote AS'),
-        widget=APISelectMultiple(
-            api_url='/api/plugins/bgp/asn/',
-        )
+        label=_('Remote AS')
     )
     local_as_id = DynamicModelMultipleChoiceField(
         queryset=ASN.objects.all(),
         required=False,
-        label=_('Local AS'),
-        widget=APISelectMultiple(
-            api_url='/api/plugins/bgp/asn/',
-        )
+        label=_('Local AS')
     )
     by_local_address = forms.CharField(
         required=False,
