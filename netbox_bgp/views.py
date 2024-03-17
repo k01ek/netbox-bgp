@@ -104,7 +104,7 @@ class CommunityListDeleteView(generic.ObjectDeleteView):
 
 class CommunityListRuleListView(generic.ObjectListView):
     queryset = CommunityListRule.objects.all()
-    # filterset = RoutingPolicyRuleFilterSet
+    filterset = filtersets.CommunityListRuleFilterSet
     # filterset_form = RoutingPolicyRuleFilterForm
     table = tables.CommunityListRuleTable
     action_buttons = ('add',)
@@ -278,7 +278,7 @@ class RoutingPolicyRuleView(generic.ObjectView):
 
 class RoutingPolicyRuleListView(generic.ObjectListView):
     queryset = RoutingPolicyRule.objects.all()
-    # filterset = RoutingPolicyRuleFilterSet
+    filterset = filtersets.RoutingPolicyRuleFilterSet
     # filterset_form = RoutingPolicyRuleFilterForm
     table = tables.RoutingPolicyRuleTable
     action_buttons = ('add',)
@@ -384,7 +384,7 @@ class PrefixListDeleteView(generic.ObjectDeleteView):
 
 class PrefixListRuleListView(generic.ObjectListView):
     queryset = PrefixListRule.objects.all()
-    # filterset = RoutingPolicyRuleFilterSet
+    filterset = filtersets.PrefixListRuleFilterSet
     # filterset_form = RoutingPolicyRuleFilterForm
     table = tables.PrefixListRuleTable
     action_buttons = ('add',)

@@ -6,7 +6,7 @@ from tenancy.models import Tenant
 from dcim.models import Site, Device, Manufacturer, DeviceRole, DeviceType
 from ipam.models import IPAddress, ASN, RIR
 
-from netbox_bgp.models import BGPSession, Community, RoutingPolicy, BGPPeerGroup
+from netbox_bgp.models import BGPSession, Community, CommunityList, RoutingPolicy, BGPPeerGroup
 
 
 class RoutingPolicyTestCase(TestCase):
@@ -114,6 +114,26 @@ class CommunityTestCase(TestCase):
         community = Community(value=0)
         self.assertRaises(ValidationError, community.full_clean)
 
+
+class CommunityListTestCase(TestCase):
+    def setUp(self):
+        self.communitylist = CommunityList.objects.create(
+            name='community_list_1',
+            description='test_community_list',
+            comments='comment_cl1'
+        )
+
+    def test_create_community(self):
+        self.assertTrue(isinstance(self.communitylist, CommunityList))
+        self.assertEqual(self.communitylist.__str__(), self.communitylist.name)
+
+    def test_unique_together(self):
+        communitylist2 = CommunityList(
+            name='community_list_1',
+            description='test_community_list',
+        )
+        with self.assertRaises(IntegrityError):
+            communitylist2.save()
 
 class BGPSessionTestCase(TestCase):
     def setUp(self):

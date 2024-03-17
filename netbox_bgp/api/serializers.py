@@ -1,7 +1,7 @@
 from rest_framework.serializers import HyperlinkedIdentityField, ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
 
-from netbox.api.fields import ChoiceField
+from netbox.api.fields import ChoiceField, SerializedPKRelatedField
 from netbox.api.serializers.nested import WritableNestedSerializer
 
 from netbox.api.serializers import NetBoxModelSerializer
@@ -20,20 +20,10 @@ from netbox_bgp.models import (
 from netbox_bgp.choices import CommunityStatusChoices, SessionStatusChoices
 
 
-class SerializedPKRelatedField(PrimaryKeyRelatedField):
-    def __init__(self, serializer, **kwargs):
-        self.serializer = serializer
-        self.pk_field = kwargs.pop('pk_field', None)
-        super().__init__(**kwargs)
-
-    def to_representation(self, value):
-        return self.serializer(value, context={'request': self.context['request']}).data
-
-
 class RoutingPolicySerializer(NetBoxModelSerializer):
     class Meta:
         model = RoutingPolicy        
-        fields = ['id', 'name', 'description', 'tags', 'custom_fields', 'comments']
+        fields = ['id', 'name', 'display', 'description', 'tags', 'custom_fields', 'comments']
 
 
 class NestedRoutingPolicySerializer(WritableNestedSerializer):
@@ -50,7 +40,7 @@ class NestedPrefixListSerializer(WritableNestedSerializer):
 
     class Meta:
         model = PrefixList
-        fields = ['id', 'url', 'display', 'name']
+        fields = ['id', 'url', 'display', 'name', 'description']
 
 
 class PrefixListSerializer(NetBoxModelSerializer):
@@ -77,7 +67,7 @@ class BGPPeerGroupSerializer(NetBoxModelSerializer):
 
     class Meta:
         model = BGPPeerGroup
-        fields = ['id', 'display', 'name', 'description', 'import_policies', 'export_policies', 'comments']
+        fields = ['id', 'display', 'name', 'description', 'import_policies', 'export_policies', 'comments', 'tags', 'custom_fields' ]
 
 
 class NestedBGPPeerGroupSerializer(WritableNestedSerializer):
@@ -173,7 +163,7 @@ class NestedCommunitySerializer(WritableNestedSerializer):
     class Meta:
         model = Community
         fields = [
-            'id', 'url', 'display', 'value'
+            'id', 'url', 'display', 'value', 'description'
         ]
 
 
@@ -188,7 +178,7 @@ class NestedCommunityListSerializer(WritableNestedSerializer):
 
     class Meta:
         model = CommunityList
-        fields = ['id', 'url', 'display', 'name']
+        fields = ['id', 'url', 'display', 'name', 'description']
 
 
 class CommunityListRuleSerializer(NetBoxModelSerializer):
@@ -200,7 +190,7 @@ class CommunityListRuleSerializer(NetBoxModelSerializer):
         fields = [
             'id', 'tags', 'custom_fields', 'display',
             'community_list', 'created', 'last_updated',
-            'action', 'community', 'comments'
+            'action', 'community', 'comments', 'description',
         ]
 
 
@@ -241,6 +231,6 @@ class PrefixListRuleSerializer(NetBoxModelSerializer):
         fields = [
             'id', 'tags', 'custom_fields', 'display',
             'prefix_list', 'created', 'last_updated',
-            'index', 'action',
+            'index', 'action', 'description',
             'prefix_custom', 'ge', 'le', 'prefix', 'comments'
         ]

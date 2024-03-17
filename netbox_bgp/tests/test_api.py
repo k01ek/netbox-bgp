@@ -16,9 +16,10 @@ from ipam.models import IPAddress, ASN, RIR
 
 from netbox_bgp.models import (
     Community, BGPPeerGroup, BGPSession, 
-    RoutingPolicy, RoutingPolicyRule, PrefixList, PrefixListRule
+    RoutingPolicy, RoutingPolicyRule, PrefixList, PrefixListRule,
+    CommunityList, CommunityListRule
 )
-
+from netbox_bgp.choices import IPAddressFamilyChoices, SessionStatusChoices
 
 class BaseTestCase(TestCase):
     def setUp(self):
@@ -84,6 +85,41 @@ class CommunityTestCase(BaseTestCase):
             content_type='application/json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class CommunityListTestCase(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.base_url_lookup = 'plugins-api:netbox_bgp-api:communitylist'
+        self.communitylist1 = CommunityList.objects.create(name='CL1', description='test_community_list1', comments='community_list_test')
+
+    def test_list_community(self):
+        url = reverse(f'{self.base_url_lookup}-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+
+    def test_get_community_list(self):
+        url = reverse(f'{self.base_url_lookup}-detail', kwargs={'pk': self.communitylist1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], self.communitylist1.name)
+        self.assertEqual(response.data['description'], self.communitylist1.description)
+
+    def test_create_community(self):
+        url = reverse(f'{self.base_url_lookup}-list')
+        data = {'name': 'CL2', 'description': 'test_community_list2', 'comments': 'community_list_test2'}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(CommunityList.objects.get(pk=response.data['id']).name, 'CL2')
+        self.assertEqual(CommunityList.objects.get(pk=response.data['id']).description, 'test_community_list2')
+        self.assertEqual(CommunityList.objects.get(pk=response.data['id']).comments, 'community_list_test2')
+
+    def test_update_community_list(self):
+        pass
+
+    def test_delete_community_list(self):
+        pass
 
 
 class PeerGroupTestCase(BaseTestCase):
@@ -165,18 +201,30 @@ class SessionTestCase(BaseTestCase):
         self.remote_as = ASN.objects.create(asn=65001, rir=self.rir, description='remote_as')
         local_as = ASN.objects.create(asn=65002, rir=self.rir, description='local_as')
         remote_as = ASN.objects.create(asn=65003, rir=self.rir, description='remote_as')
+        self.import_pol = RoutingPolicy.objects.create(name="self_rm_in", description="self_desc_rm_in")
+        self.export_pol = RoutingPolicy.objects.create(name="self_rm_out", description="self_desc_rm_out")
+        import_pol = RoutingPolicy.objects.create(name="rm_in", description="desc_rm_in")
+        export_pol = RoutingPolicy.objects.create(name="rm_out", description="desc_rm_out")
+        self.prefix_in = PrefixList.objects.create(name="pl_in", description="desc_pl_in", family=IPAddressFamilyChoices.FAMILY_4)
+        self.prefix_out = PrefixList.objects.create(name="pl_out", description="desc_pl_out", family=IPAddressFamilyChoices.FAMILY_4)
         self.peer_group = BGPPeerGroup.objects.create(name='peer_group', description='peer_group_description')
         self.session = BGPSession.objects.create(
             name='session',
             description='session_descr',
+            device=self.device,
             local_as=local_as,
             remote_as=remote_as,
             local_address=local_ip,
             remote_address=remote_ip,
-            status='active',
+            status=SessionStatusChoices.STATUS_ACTIVE,
             peer_group=self.peer_group,
+            prefix_list_in=self.prefix_in,
+            prefix_list_out=self.prefix_out,
             comments="comment_session_test"
         )
+        self.session.save()
+        self.session.import_policies.add(import_pol)
+        self.session.export_policies.add(export_pol)
 
     def test_list_session(self):
         url = reverse(f'{self.base_url_lookup}-list')
@@ -190,6 +238,7 @@ class SessionTestCase(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], self.session.name)
         self.assertEqual(response.data['description'], self.session.description)
+        self.assertEqual(response.data['device']['name'], self.device.name)
         self.assertEqual(response.data['local_as']['asn'], self.session.local_as.asn)
         self.assertEqual(response.data['remote_as']['asn'], self.session.remote_as.asn)
         self.assertEqual(response.data['local_address']['address'], self.session.local_address.address)
@@ -197,8 +246,15 @@ class SessionTestCase(BaseTestCase):
         self.assertEqual(response.data['status']['value'], self.session.status)
         self.assertEqual(response.data['peer_group']['name'], self.session.peer_group.name)
         self.assertEqual(response.data['peer_group']['description'], self.session.peer_group.description)
+        self.assertEqual(response.data['import_policies'][0]['name'], self.session.import_policies.all()[0].name)
+        self.assertEqual(response.data['import_policies'][0]['description'], self.session.import_policies.all()[0].description)
+        self.assertEqual(response.data['export_policies'][0]['name'], self.session.export_policies.all()[0].name)
+        self.assertEqual(response.data['export_policies'][0]['description'], self.session.export_policies.all()[0].description)
+        self.assertEqual(response.data['prefix_list_in']['name'], self.session.prefix_list_in.name)
+        self.assertEqual(response.data['prefix_list_in']['description'], self.session.prefix_list_in.description)
+        self.assertEqual(response.data['prefix_list_out']['name'], self.session.prefix_list_out.name)
+        self.assertEqual(response.data['prefix_list_out']['description'], self.session.prefix_list_out.description)
         self.assertEqual(response.data['comments'], self.session.comments)
-
 
     def test_create_session(self):
         url = reverse(f'{self.base_url_lookup}-list')
@@ -212,14 +268,28 @@ class SessionTestCase(BaseTestCase):
             'status': 'active',
             'device': self.device.pk,
             'peer_group': self.peer_group.pk,
-            'comments': 'comment_session_test1'
-
+            'import_policies': [self.import_pol.pk],
+            'export_policies': [self.export_pol.pk],
+            'prefix_list_in': self.prefix_in.pk,
+            'prefix_list_out': self.prefix_out.pk,
+            'comments': 'comment_session_test1',
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(BGPSession.objects.get(pk=response.data['id']).name, 'test_session')
         self.assertEqual(BGPSession.objects.get(pk=response.data['id']).description, 'session_descr')
         self.assertEqual(BGPSession.objects.get(pk=response.data['id']).comments, 'comment_session_test1')
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).local_as.id, self.local_as.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).remote_as.id, self.remote_as.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).device.id, self.device.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).status, self.session.status)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).local_address.id, self.local_ip.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).remote_address.id, self.remote_ip.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).import_policies.all()[0].id, self.import_pol.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).export_policies.all()[0].id, self.export_pol.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).prefix_list_in.id, self.prefix_in.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).prefix_list_out.id, self.prefix_out.pk)
+        self.assertEqual(BGPSession.objects.get(pk=response.data['id']).peer_group.id, self.peer_group.pk)
 
 
     def test_update_session(self):
@@ -327,7 +397,7 @@ class PrefixListTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.base_url_lookup = 'plugins-api:netbox_bgp-api:prefixlist'
-        self.obj = PrefixList.objects.create(name='pl1', description='test_pl', family='ipv4', comments='comments_pl')
+        self.obj = PrefixList.objects.create(name='pl1', description='test_pl', family=IPAddressFamilyChoices.FAMILY_4, comments='comments_pl')
 
     def test_list_prefix_list(self):
         url = reverse(f'{self.base_url_lookup}-list')
